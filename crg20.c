@@ -27,8 +27,8 @@ static inline crg20_msg_status_t CRG20_CheckPacket(crg20_pack_t tx, crg20_pack_t
     return status;
 }
 
-static inline crg20_pack_t CRG20_SendReceivePacket(uint8_t msg_type, uint8_t self_test){
-    crg20_pack_t tx_pack, rx_pack;
+static inline crg20_msg_status_t CRG20_SendReceivePacket(uint8_t msg_type, uint8_t self_test, crg20_pack_t * frame){
+    crg20_pack_t tx_pack;
     tx_pack = CRG20_TxPackPrepare(msg_type, self_test);
     CS_SEL;
     DELAY(1);
@@ -36,9 +36,58 @@ static inline crg20_pack_t CRG20_SendReceivePacket(uint8_t msg_type, uint8_t sel
     CS_DESEL;
     DELAY(1);
     CS_SEL;
-    CRG20_SPI_RECEIVE(&rx_pack);
+    CRG20_SPI_RECEIVE(&frame);
     CS_DESEL;
-    return rx_pack;
+    return CRG20_CheckPacket(tx_pack, *frame);
 }
 
-crg20_msg_status_t
+crg20_msg_status_t CRG20_GetDefault(crg20_default_t * frame){
+    crg20_pack_t rx_pack; 
+    crg20_msg_status_t status = CRG20_SendReceivePacket(CRG20_DEFAULT, CRG20_SELFTEST_OFF, &rx_pack);
+    if (status == CRG20_MSG_OK){
+        frame->rate = (((uint16_t)(rx_pack.data[0])) | ((uint16_t)(rx_pack.data[1] << 8)));
+        frame->rate_check_byte = rx_pack.data[2];
+    }
+    return status;
+}
+
+crg20_msg_status_t CRG20_GetAUX(uint8_t aux_num, crg20_aux_t * frame){
+    crg20_pack_t rx_pack;
+    crg20_msg_status_t status;
+    if (aux_num == CRG20_AUX_1) status = CRG20_SendReceivePacket(CRG20_AUX1, CRG20_SELFTEST_OFF, &rx_pack);
+    else status = CRG20_SendReceivePacket(CRG20_AUX2, CRG20_SELFTEST_OFF, &rx_pack);
+    if (status == CRG20_MSG_OK){
+        frame->rate = (((uint16_t)(rx_pack.data[0])) | ((uint16_t)(rx_pack.data[1] << 8)));
+        frame->data = (((uint16_t)(rx_pack.data[2])) | ((uint16_t)(rx_pack.data[3] << 8)));
+    }
+    return status;
+}
+
+crg20_msg_status_t CRG20_GetTemperature(crg20_temp_t * frame){
+    crg20_pack_t rx_pack;
+    crg20_msg_status_t status = CRG20_SendReceivePacket(CRG20_TEMPERATURE, CRG20_SELFTEST_OFF, &rx_pack);
+    if (status == CRG20_MSG_OK){
+        frame->rate = (((uint16_t)(rx_pack.data[0])) | ((uint16_t)(rx_pack.data[1] << 8)));
+        frame->data = (((uint16_t)(rx_pack.data[2])) | ((uint16_t)(rx_pack.data[3] << 8)));
+    }
+    return status;
+}
+
+crg20_msg_status_t CRG20_GetDevConfig(crg20_dev_configs_t * frame){
+    crg20_pack_t rx_pack_1, rx_pack_2;
+    crg20_msg_status_t status_1 = CRG20_SendReceivePacket(CRG20_DEV_CONF_1, CRG20_SELFTEST_OFF, &rx_pack_1);
+    crg20_msg_status_t status_2 = CRG20_SendReceivePacket(CRG20_DEV_CONF_2, CRG20_SELFTEST_OFF, &rx_pack_2);
+    if ((status_1 | status_2) == CRG20_MSG_OK){
+        frame->model_bandwidth =    (rx_pack_1.data[0] & 0x0F);
+        frame->model_rate_range =   ((rx_pack_1.data[0] >> 4) & 0x0F);
+        frame->model_variant =      (rx_pack_1.data[1] & 0x0F);
+        frame->software_version =   (rx_pack_1.data[2]);
+        frame->manufacture_year =   (rx_pack_1.data[3] & 0b00011111);
+
+        frame->manufacture_month =  ((((uint16_t)(rx_pack_2.data[0])) >> 4) & 0x0F);
+        frame->manufacture_lot =    (((((uint16_t)(rx_pack_2.data[0])) & 0x0F) << 8) | ((uint16_t)(rx_pack_2.data[1])));
+        frame->assembly_plant =     ((((uint16_t)(rx_pack_2.data[2])) >> 6) & 0b00000011);
+        frame->serial_number =      (((((uint16_t)(rx_pack_2.data[2])) & 0b00111111) << 8) | ((uint16_t)(rx_pack_2.data[3])));
+    }
+    return (status_1 | status_2);
+}
