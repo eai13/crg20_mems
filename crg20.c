@@ -15,7 +15,19 @@ static inline crg20_pack_t CRG20_TxPackPrepare(uint8_t msg_type, uint8_t self_te
     return pack;
 }
 
-crg20_pack_t CRG20_SendReceivePacket(uint8_t msg_type, uint8_t self_test){
+static inline crg20_msg_status_t CRG20_CheckPacket(crg20_pack_t tx, crg20_pack_t rx){
+    crg20_msg_status_t status = CRG20_MSG_OK;
+    if ((tx.status_byte & (CRG20_TO_STATUS_NMT0 | CRG20_TO_STATUS_NMT1 | CRG20_TO_STATUS_NMT2)) !=
+        (rx.status_byte & (CRG20_FROM_STATUS_MT0 | CRG20_FROM_STATUS_MT1 | CRG20_FROM_STATUS_MT2))){
+        status |= CRG20_MSGTYPE_ERROR;
+    }
+    if (CRG20_CheckSum(rx) != (rx.c_sum)){
+        status |= CRG20_CHECKSUM_ERROR;
+    }
+    return status;
+}
+
+static inline crg20_pack_t CRG20_SendReceivePacket(uint8_t msg_type, uint8_t self_test){
     crg20_pack_t tx_pack, rx_pack;
     tx_pack = CRG20_TxPackPrepare(msg_type, self_test);
     CS_SEL;
@@ -28,3 +40,5 @@ crg20_pack_t CRG20_SendReceivePacket(uint8_t msg_type, uint8_t self_test){
     CS_DESEL;
     return rx_pack;
 }
+
+crg20_msg_status_t
