@@ -10,8 +10,8 @@
 #define CRG20_SPI_TIMEOUT           100
 #define CRG20_SPI                   hspi1
 #define CRG20_PACK_SIZE             6
-#define CRG20_SPI_TRANSMIT(data)    HAL_SPI_Transmit(&CRG20_SPI, (uint8_t *)data, CRG20_PACK_SIZE, CRG20_SPI_TIMEOUT)
-#define CRG20_SPI_RECEIVE(data)     HAL_SPI_Receive(&CRG20_SPI, (uint8_t *)data, CRG20_PACK_SIZE, CRG20_SPI_TIMEOUT)
+#define CRG20_SPI_TRANSMIT(data)    for (uint8_t iter = 0; iter < CRG20_PACK_SIZE; iter++) HAL_SPI_Transmit(&CRG20_SPI, data + iter, 1, CRG20_SPI_TIMEOUT)
+#define CRG20_SPI_RECEIVE(data)     for (uint8_t iter = 0; iter < CRG20_PACK_SIZE; iter++) HAL_SPI_Receive(&CRG20_SPI, data + iter, 1, CRG20_SPI_TIMEOUT)
 #define CS_SEL                      HAL_GPIO_WritePin(SPI_SS_GPIO_Port, SPI_SS_Pin, 0)
 #define CS_DESEL                    HAL_GPIO_WritePin(SPI_SS_GPIO_Port, SPI_SS_Pin, 1)
 #define DELAY(ms)                   HAL_Delay(ms)

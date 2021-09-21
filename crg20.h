@@ -3,6 +3,7 @@
 
 #include "crg20_config.h"
 #include <stdint.h>
+#include "debug.h"
 
 /**
  * @brief error types for received messages
