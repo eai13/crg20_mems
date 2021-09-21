@@ -52,8 +52,8 @@ typedef struct crg20_pack{
  */
 #pragma pack(push, 1)
 typedef struct crg20_aux{
-    uint16_t rate;
-    uint16_t data;
+    int16_t rate;
+    int16_t data;
 }crg20_aux_t;
 #pragma pack(pop)
 
@@ -62,7 +62,7 @@ typedef struct crg20_aux{
  */
 #pragma pack(push, 1)
 typedef struct crg20_default{
-    uint16_t rate;
+    int16_t rate;
     uint8_t rate_check_byte;
 }crg20_default_t;
 #pragma pack(pop)
@@ -72,8 +72,8 @@ typedef struct crg20_default{
  */
 #pragma pack(push, 1)
 typedef struct crg20_temp{
-    uint16_t rate;
-    uint16_t data;
+    int16_t rate;
+    int16_t data;
 }crg20_temp_t;
 #pragma pack(pop)
 

@@ -31,21 +31,13 @@ static inline crg20_msg_status_t CRG20_CheckPacket(crg20_pack_t tx, crg20_pack_t
 static inline crg20_msg_status_t CRG20_SendReceivePacket(uint8_t msg_type, uint8_t self_test, crg20_pack_t * frame){
     crg20_pack_t tx_pack;
     tx_pack = CRG20_TxPackPrepare(msg_type, self_test);
-    uint8_t str[63];
-    snprintf(str, 63, "TX: 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x\r\n", tx_pack.status_byte, tx_pack.data[0], tx_pack.data[1], tx_pack.data[2], tx_pack.data[3], tx_pack.c_sum);
-    print_db(str);
     CS_SEL;
-    DELAY(1);
     CRG20_SPI_TRANSMIT(&tx_pack);
     CS_DESEL;
     DELAY(1);
     CS_SEL;
     CRG20_SPI_RECEIVE(frame);
     CS_DESEL;
-    // DELAY(1); // NEW
-    // uint8_t str[63];
-    snprintf(str, 63, "RX: 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x\r\n", frame->status_byte, frame->data[0], frame->data[1], frame->data[2], frame->data[3], frame->c_sum);
-    print_db(str);
     return CRG20_CheckPacket(tx_pack, *frame);
 }
 
@@ -53,7 +45,7 @@ crg20_msg_status_t CRG20_GetDefault(crg20_default_t * frame){
     crg20_pack_t rx_pack; 
     crg20_msg_status_t status = CRG20_SendReceivePacket(CRG20_DEFAULT, CRG20_SELFTEST_OFF, &rx_pack);
     if (status == CRG20_MSG_OK){
-        frame->rate = (((uint16_t)(rx_pack.data[0])) | ((uint16_t)(rx_pack.data[1] << 8)));
+        frame->rate = (int16_t)(rx_pack.data[1] | ((uint16_t)(rx_pack.data[0]) << 8));
         frame->rate_check_byte = rx_pack.data[2];
     }
     return status;
@@ -65,8 +57,8 @@ crg20_msg_status_t CRG20_GetAUX(uint8_t aux_num, crg20_aux_t * frame){
     if (aux_num == CRG20_AUX_1) status = CRG20_SendReceivePacket(CRG20_AUX1, CRG20_SELFTEST_OFF, &rx_pack);
     else status = CRG20_SendReceivePacket(CRG20_AUX2, CRG20_SELFTEST_OFF, &rx_pack);
     if (status == CRG20_MSG_OK){
-        frame->rate = (((uint16_t)(rx_pack.data[0])) | ((uint16_t)(rx_pack.data[1] << 8)));
-        frame->data = (((uint16_t)(rx_pack.data[2])) | ((uint16_t)(rx_pack.data[3] << 8)));
+        frame->rate = (int16_t)(rx_pack.data[1] | ((uint16_t)(rx_pack.data[0]) << 8));
+        frame->data = (int16_t)(rx_pack.data[3] | ((uint16_t)(rx_pack.data[2]) << 8));
     }
     return status;
 }
@@ -75,19 +67,16 @@ crg20_msg_status_t CRG20_GetTemperature(crg20_temp_t * frame){
     crg20_pack_t rx_pack;
     crg20_msg_status_t status = CRG20_SendReceivePacket(CRG20_TEMPERATURE, CRG20_SELFTEST_OFF, &rx_pack);
     if (status == CRG20_MSG_OK){
-        frame->rate = (((uint16_t)(rx_pack.data[0])) | ((uint16_t)(rx_pack.data[1] << 8)));
-        frame->data = (((uint16_t)(rx_pack.data[2])) | ((uint16_t)(rx_pack.data[3] << 8)));
+        frame->rate = (int16_t)(rx_pack.data[1] | ((uint16_t)(rx_pack.data[0]) << 8));
+        frame->data = (int16_t)(rx_pack.data[3] | ((uint16_t)(rx_pack.data[2]) << 8));
     }
     return status;
 }
 
 crg20_msg_status_t CRG20_GetDevConfig(crg20_dev_configs_t * frame){
     crg20_pack_t rx_pack_1, rx_pack_2;
-    // print_in("0 OK\r\n");
     crg20_msg_status_t status_1 = CRG20_SendReceivePacket(CRG20_DEV_CONF_1, CRG20_SELFTEST_OFF, &rx_pack_1);
-    // print_in("1 OK\r\n");
     crg20_msg_status_t status_2 = CRG20_SendReceivePacket(CRG20_DEV_CONF_2, CRG20_SELFTEST_OFF, &rx_pack_2);
-    // print_in("2 OK\r\n"); FIXME:
     if ((status_1 | status_2) == CRG20_MSG_OK){
         frame->model_bandwidth =    (rx_pack_1.data[0] & 0x0F);
         frame->model_rate_range =   ((rx_pack_1.data[0] >> 4) & 0x0F);
